@@ -97,6 +97,7 @@ private:
     bool cloudFsrEnabledPsnow = false;
     std::string cloudDatacenterPscloud;
     std::string cloudDatacenterPsnow;
+    std::string cloudDuid;
     std::vector<cloud::Datacenter> cloudDatacentersPscloud;
     std::vector<cloud::Datacenter> cloudDatacentersPsnow;
     int cloudSortState = 0;
@@ -292,6 +293,7 @@ public:
 
     std::string getGlobalDuid() const;
     void setGlobalDuid(const std::string& duid);
+    const std::string& getCloudDuid() const { return cloudDuid; }
 
     const std::vector<Profile>& getProfiles() const;
     Profile* findProfile(int64_t id);

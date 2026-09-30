@@ -272,6 +272,7 @@ CatalogFetchResult fetchCatalogBlocking(SettingsManager* settings, const Profile
 
     ChiakiCloudCatalogConfig cfg = {};
     cfg.npsso = profile.npsso.empty() ? nullptr : profile.npsso.c_str();
+    cfg.duid = settings->getCloudDuid().c_str();
     cfg.locale = locale.c_str();
     cfg.cache_dir = cacheDir.c_str();
     cfg.force_refresh = force;
@@ -692,6 +693,7 @@ void Service::launchGame(const Game& game, HostCallback onSuccess, ErrorCallback
         cfg.game_identifier = game.streamIdentifier.c_str();
         cfg.game_name = game.name.c_str();
         cfg.npsso = npsso.c_str();
+        cfg.duid = settings->getCloudDuid().c_str();
         cfg.store_country = catalogResult.snapshot.catalog.fallbackRegion.c_str();
         cfg.store_lang = catalogResult.snapshot.catalog.resolvedStoreLang.c_str();
         cfg.owned_entitlement_id = game.entitlementId.c_str();

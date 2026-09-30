@@ -10,6 +10,7 @@
 #include <utility>
 #include <chiaki/base64.h>
 #include <chiaki/controller.h>
+#include <chiaki/random.h>
 #include <toml++/toml.hpp>
 #include <switch.h>
 
@@ -349,6 +350,30 @@ SettingsManager* SettingsManager::getInstance() {
         instance = new SettingsManager();
         instance->ensureConfigDir();
         instance->parseFile();
+        constexpr char prefix[] = "0000000700410080";
+        const std::string& duid = instance->cloudDuid;
+        const bool validCloudDuid = duid.size() == 48 &&
+            duid.compare(0, sizeof(prefix) - 1, prefix) == 0 &&
+            std::all_of(duid.begin(), duid.end(), [](unsigned char c) {
+                return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f');
+            });
+        if (!validCloudDuid) {
+            uint8_t randomBytes[16];
+            if (chiaki_random_bytes_crypt(randomBytes, sizeof(randomBytes)) == CHIAKI_ERR_SUCCESS) {
+                constexpr char hex[] = "0123456789abcdef";
+                std::string generated(prefix);
+                for (uint8_t byte : randomBytes) {
+                    generated += hex[byte >> 4];
+                    generated += hex[byte & 0x0f];
+                }
+                instance->cloudDuid = std::move(generated);
+                if (instance->writeFile() != 0)
+                    brls::Logger::error("Failed to persist cloud DUID");
+            } else {
+                brls::Logger::error("Failed to generate cloud DUID");
+                instance->cloudDuid.clear();
+            }
+        }
     }
     return instance;
 }
@@ -637,6 +662,7 @@ void SettingsManager::parseTomlFile() {
 
         cloudDatacenterPscloud = config["cloud"]["datacenter_pscloud"].value<std::string>().value_or("");
         cloudDatacenterPsnow = config["cloud"]["datacenter_psnow"].value<std::string>().value_or("");
+        cloudDuid = config["cloud"]["duid"].value<std::string>().value_or("");
         cloudDatacentersPscloud = readDatacenters(config["cloud"]["datacenters"]["pscloud"].as_array());
         cloudDatacentersPsnow = readDatacenters(config["cloud"]["datacenters"]["psnow"].as_array());
         cloudSortState = static_cast<int>(config["cloud"]["sort_state"].value<int64_t>().value_or(0));
@@ -1110,6 +1136,7 @@ int SettingsManager::writeFile() {
 
     {
         toml::table cloud;
+        if (!cloudDuid.empty()) cloud.insert("duid", cloudDuid);
         if (!cloudDatacenterPscloud.empty()) cloud.insert("datacenter_pscloud", cloudDatacenterPscloud);
         if (!cloudDatacenterPsnow.empty()) cloud.insert("datacenter_psnow", cloudDatacenterPsnow);
         if (cloudSortState != 0) cloud.insert("sort_state", cloudSortState);
