@@ -14,9 +14,11 @@
 #include <borealis/core/i18n.hpp>
 
 #include <chiaki/cloudcatalog.h>
+#include <chiaki/cloudclock.h>
 
 #include <algorithm>
 #include <cctype>
+#include <chrono>
 #include <functional>
 #include <string>
 #include <vector>
@@ -27,6 +29,15 @@ namespace cloud {
 
 static constexpr size_t kCloudPerRow = 4;
 static constexpr float kCloudRowHeight = 258.0f;
+
+static int64_t releaseGateNowMs()
+{
+    int64_t nowMs = 0;
+    if (chiaki_cloud_clock_now_ms(&nowMs))
+        return nowMs;
+    return std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+}
 
 /*
  * Endonyms, so the list reads the same whatever the console is set to - and it
@@ -681,7 +692,12 @@ void LibraryView::showState(const Snapshot& snapshot)
 
 void LibraryView::showCatalog(const Catalog& catalog)
 {
-    allGames = catalog.games;
+    const int64_t nowMs = releaseGateNowMs();
+    allGames.clear();
+    allGames.reserve(catalog.games.size());
+    for (const Game& game : catalog.games)
+        if (game.releasedAt(nowMs))
+            allGames.push_back(game);
     applyFilter();
 }
 
@@ -1065,6 +1081,11 @@ void LibraryView::toggleShortcut(const Game& game)
     }
     else
     {
+        if (!game.streamableNow())
+        {
+            showAddGameDialog(game);
+            return;
+        }
         shortcuts.push_back(game);
         added = true;
     }
@@ -1116,6 +1137,14 @@ void LibraryView::launchGame(const Game& game, bool forceSkipAttr)
     if (snapshot.status.plusMembership == PlusMembership::None)
     {
         auto* dialog = new brls::Dialog("akira/cloud/status_subscription_detail"_i18n);
+        dialog->addButton("akira/common/ok"_i18n, [dialog]() { dialog->close(); });
+        dialog->open();
+        return;
+    }
+
+    if (!game.releasedAt(releaseGateNowMs()))
+    {
+        auto* dialog = new brls::Dialog("akira/cloud/launch_not_released"_i18n);
         dialog->addButton("akira/common/ok"_i18n, [dialog]() { dialog->close(); });
         dialog->open();
         return;

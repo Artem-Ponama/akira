@@ -76,6 +76,7 @@ TEST(catalog_warning_and_launch_errors_are_classified)
     CHECK(classifyLaunchFailure("PS_PLUS_SUBSCRIPTION_REQUIRED") == LaunchFailureKind::PsPlusRequired);
     CHECK(classifyLaunchFailure(R"({"name":"noGameForEntitlementId"})")
         == LaunchFailureKind::GameNotStreamable);
+    CHECK(classifyLaunchFailure("GAME_NOT_RELEASED") == LaunchFailureKind::GameNotReleased);
     CHECK(classifyLaunchFailure("PING_TIMEOUT") == LaunchFailureKind::PingTimeout);
     CHECK(classifyLaunchFailure("Couldn't reach the cloud server (network error). Please try again.")
         == LaunchFailureKind::NetworkError);
@@ -112,6 +113,67 @@ TEST(parse_catalog_uses_public_catalog_match_as_initial_streamability_hint)
     })", catalog));
     CHECK(catalog.games[0].streamabilityStatus == StreamabilityStatus::Streamable);
     CHECK(catalog.games[1].streamabilityStatus == StreamabilityStatus::Unknown);
+}
+
+TEST(parse_catalog_keeps_owned_release_times)
+{
+    Catalog catalog;
+    CHECK(parseCatalog(R"({
+        "schemaVersion": 10,
+        "total": 3,
+        "games": [
+            {"productId":"PPSA1","name":"Preorder","platform":"ps5","serviceType":"pscloud","isOwned":true,"availableFromMs":1791241200000,"streamServiceType":"pscloud","streamIdentifier":"PPSA1"},
+            {"productId":"PPSA2","name":"Dateless","platform":"ps5","serviceType":"pscloud","isOwned":true,"availableFromMs":9223372036854775807,"streamServiceType":"pscloud","streamIdentifier":"PPSA2"},
+            {"productId":"PPSA3","name":"Catalog","platform":"ps5","serviceType":"pscloud","isOwned":false,"availableFromMs":1791241200000,"streamServiceType":"pscloud","streamIdentifier":"PPSA3"}
+        ]
+    })", catalog));
+    CHECK_EQ(catalog.games.size(), size_t(3));
+    for (const Game& game : catalog.games)
+    {
+        if (game.productId == "PPSA1")
+        {
+            CHECK_EQ(game.availableFromMs, int64_t(1791241200000LL));
+            CHECK(!game.releasedAt(1791241200000LL - 1));
+            CHECK(game.releasedAt(1791241200000LL));
+        }
+        else if (game.productId == "PPSA2")
+            CHECK(!game.releasedAt(INT64_MAX - 1));
+        else
+            CHECK(game.releasedAt(0));
+    }
+}
+
+TEST(launch_requires_ps5_cloud_titles_in_the_library)
+{
+    Catalog catalog;
+    CHECK(parseCatalog(R"({
+        "schemaVersion": 10,
+        "total": 3,
+        "games": [
+            {"productId":"PPSA1","name":"Owned","platform":"ps5","serviceType":"pscloud","category":"owned","isOwned":true,"streamServiceType":"pscloud","streamIdentifier":"PPSA1"},
+            {"productId":"PPSA2","name":"Wolverine","platform":"ps5","serviceType":"pscloud","category":"purchaseable","isOwned":false,"plusCatalog":true,"streamServiceType":"pscloud","streamIdentifier":"PPSA2"},
+            {"productId":"CUSA3","name":"Classic","platform":"ps4","serviceType":"psnow","category":"streamable","isOwned":false,"streamServiceType":"psnow","streamIdentifier":"CUSA3"}
+        ]
+    })", catalog));
+
+    Game pinned;
+    pinned.productId = "PPSA2";
+    pinned.streamServiceType = "pscloud";
+    pinned.isOwned = true;
+    const Game* current = catalog.find(pinned);
+    CHECK(current != nullptr);
+    CHECK(current->requiresLibraryAdd());
+
+    pinned.productId = "PPSA1";
+    CHECK(!catalog.find(pinned)->requiresLibraryAdd());
+
+    pinned.productId = "CUSA3";
+    pinned.streamServiceType = "psnow";
+    CHECK(!catalog.find(pinned)->requiresLibraryAdd());
+
+    pinned.productId = "PPSA9";
+    pinned.streamServiceType = "pscloud";
+    CHECK(catalog.find(pinned) == nullptr);
 }
 
 TEST(psn_plus_membership_is_only_a_definitive_negative_gate)

@@ -30,6 +30,7 @@ bool parseGame(json_object* obj, Game& out)
     out.storeProductId = psn::jsonString(obj, "storeProductId");
     out.conceptUrl = psn::jsonString(obj, "conceptUrl");
     out.plusCatalog = psn::jsonBool(obj, "plusCatalog");
+    out.availableFromMs = psn::jsonInt64(obj, "availableFromMs");
     // A PS5 entitlement matched to Sony's main streaming catalog is a strong
     // initial signal. Confirmed per-profile launch outcomes are applied later by
     // Service and still override this hint in either direction.
@@ -52,6 +53,14 @@ int Catalog::launchableCount() const
     for (const Game& game : games)
         count += game.launchable() ? 1 : 0;
     return count;
+}
+
+const Game* Catalog::find(const Game& game) const
+{
+    for (const Game& candidate : games)
+        if (candidate.productId == game.productId && candidate.streamServiceType == game.streamServiceType)
+            return &candidate;
+    return nullptr;
 }
 
 std::vector<Datacenter> parseDatacenters(const std::string& json)
@@ -209,6 +218,8 @@ LaunchFailureKind classifyLaunchFailure(const std::string& errorMessage)
         return LaunchFailureKind::AuthorizationFailed;
     if (errorMessage == "PS_PLUS_SUBSCRIPTION_REQUIRED")
         return LaunchFailureKind::PsPlusRequired;
+    if (errorMessage == "GAME_NOT_RELEASED")
+        return LaunchFailureKind::GameNotReleased;
     if (errorMessage.find("noGameForEntitlement") != std::string::npos)
         return LaunchFailureKind::GameNotStreamable;
     if (errorMessage.rfind("ACCOUNT_PRIVACY_SETTINGS", 0) == 0)

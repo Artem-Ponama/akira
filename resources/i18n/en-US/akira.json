@@ -178,6 +178,8 @@
     "launch_not_enabled": "This profile can't start cloud sessions yet. Check that cloud streaming is enabled on the account.",
     "launch_ps_plus": "Cloud streaming needs a PlayStation Plus tier that includes game streaming.",
     "launch_unavailable": "This game is not available to stream for this account.",
+    "launch_not_in_library": "{} isn't in your PlayStation library. PS5 cloud games only stream from your library: add it on the PS Store, then refresh.",
+    "launch_not_released": "This game hasn't been released yet. Pre-ordered games unlock at their release time.",
     "launch_privacy": "This account isn't fully set up for PlayStation cloud streaming. PlayStation still needs these completed:",
     "launch_privacy_action": "Set them in the PS App or at playstation.com (Account settings), then try again.",
     "try_anyway": "Try anyway",

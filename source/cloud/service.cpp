@@ -181,6 +181,8 @@ std::string launchErrorText(LaunchFailureKind kind, const std::string& raw)
             return "akira/cloud/launch_ps_plus"_i18n;
         case LaunchFailureKind::GameNotStreamable:
             return "akira/cloud/launch_unavailable"_i18n;
+        case LaunchFailureKind::GameNotReleased:
+            return "akira/cloud/launch_not_released"_i18n;
         case LaunchFailureKind::PrivacySettings:
             return privacyLaunchMessage(raw);
         case LaunchFailureKind::NetworkError:
@@ -683,6 +685,18 @@ void Service::launchGame(const Game& game, HostCallback onSuccess, ErrorCallback
         if (isCancelled && isCancelled())
             return;
 
+        const Game* current = catalogResult.snapshot.catalog.find(game);
+        if (game.streamServiceType == "pscloud" && (!current || current->requiresLibraryAdd()))
+        {
+            brls::Logger::warning("CloudLaunch: refusing {} ({}): not in the PS5 library",
+                game.name, game.productId);
+            std::string message = brls::getStr("akira/cloud/launch_not_in_library", game.name);
+            if (onError)
+                brls::sync([onError, message]() { onError(message); });
+            return;
+        }
+        const Game& target = current ? *current : game;
+
         ProvisionBridge bridge{onProgress, isCancelled};
         const bool pscloud = game.streamServiceType == "pscloud";
         const std::string forcedDatacenter = settings->getCloudDatacenter(pscloud);
@@ -705,6 +719,7 @@ void Service::launchGame(const Game& game, HostCallback onSuccess, ErrorCallback
         cfg.game_language = gameLanguage.c_str();
         cfg.resolution = settings->getCloudVideoResolution(pscloud);
         cfg.bitrate_kbps = settings->getCloudVideoBitrate(pscloud);
+        cfg.available_from_ms = target.isOwned ? target.availableFromMs : 0;
         cfg.progress = provisionProgress;
         cfg.is_cancelled = provisionCancelled;
         cfg.user = &bridge;
@@ -740,7 +755,7 @@ void Service::launchGame(const Game& game, HostCallback onSuccess, ErrorCallback
             std::string raw = result.error_message ? result.error_message : "";
             LaunchFailureKind kind = classifyLaunchFailure(raw);
             std::string message = launchErrorText(kind, raw);
-            if (game.serviceType == "pscloud")
+            if (game.serviceType == "pscloud" && kind != LaunchFailureKind::GameNotReleased)
                 storeLaunchOutcome(profileId, game.productId, false);
             chiaki_cloud_provision_result_fini(&result);
             if (onError)

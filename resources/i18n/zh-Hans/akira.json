@@ -170,6 +170,8 @@
     "launch_not_enabled": "这个配置档目前无法启动云串流。请确认账号已启用云串流。",
     "launch_ps_plus": "云串流需要包含游戏串流的 PlayStation Plus 方案。",
     "launch_unavailable": "此账户无法串流这款游戏。",
+    "launch_not_in_library": "{} 不在你的 PlayStation 游戏库中。PS5 云游戏只能从游戏库串流：请先在 PS Store 添加，然后刷新。",
+    "launch_not_released": "这款游戏尚未发售。预购的游戏将在发售时解锁。",
     "launch_privacy": "此账户尚未完成 PlayStation 云串流所需的设置。PlayStation 仍需要完成以下项目：",
     "launch_privacy_action": "请在 PS App 或 playstation.com（账户设置）中完成后重试。",
     "try_anyway": "仍然尝试",

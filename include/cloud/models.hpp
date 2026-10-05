@@ -1,6 +1,7 @@
 #ifndef AKIRA_CLOUD_MODELS_HPP
 #define AKIRA_CLOUD_MODELS_HPP
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -39,10 +40,13 @@ struct Game {
     std::string storeProductId;
     std::string conceptUrl;
     bool plusCatalog = false;
+    int64_t availableFromMs = 0;
     StreamabilityStatus streamabilityStatus = StreamabilityStatus::Unknown;
 
     bool launchable() const { return !streamServiceType.empty() && !streamIdentifier.empty(); }
+    bool requiresLibraryAdd() const { return streamServiceType == "pscloud" && !isOwned; }
     bool streamableNow() const { return launchable() && (isOwned || category != "purchaseable"); }
+    bool releasedAt(int64_t nowMs) const { return !isOwned || availableFromMs <= nowMs; }
     std::string artworkUrl() const;
 };
 
@@ -58,6 +62,7 @@ struct Catalog {
 
     bool foreignAccountCatalog() const { return !nativeMode; }
     int launchableCount() const;
+    const Game* find(const Game& game) const;
 };
 
 enum class WarningKind {
@@ -71,6 +76,7 @@ enum class LaunchFailureKind {
     AuthorizationFailed,
     PsPlusRequired,
     GameNotStreamable,
+    GameNotReleased,
     PrivacySettings,
     NetworkError,
     PingTimeout,
