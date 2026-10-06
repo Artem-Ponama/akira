@@ -42,7 +42,7 @@ jobs:
             -e VERSION_PRERELEASE="${VERSION_PRERELEASE}" \
             -v "${{ github.workspace }}:/build" \
             -w /build \
-            ghcr.io/artem-ponama/akira-builder:latest \
+            ghcr.io/xlanor/akira-builder:latest \
             bash -c "
               set -e
               git config --global --add safe.directory /build
