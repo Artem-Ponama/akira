@@ -26,7 +26,7 @@
   },
   "hosts": {
     "title": "PlayStation Consoles",
-    "find_remote": "Find Remote",
+    "find_remote": "Найти Remote",
     "switch_profile": "Switch profile",
     "no_profiles_add": "Add a profile in Settings first",
     "shortcuts": "Shortcuts",
