@@ -107,11 +107,12 @@ void SettingsGeneralView::initPacketLossMaxSlider() {
 }
 
 void SettingsGeneralView::initLanguageSelector() {
-    static const std::vector<std::string> localeCodes = {"", "en-US", "zh-Hans"};
+    static const std::vector<std::string> localeCodes = {"", "en-US", "ru-RU", "zh-Hans"};
 
     std::vector<std::string> options = {
         "akira/settings/lang_system"_i18n,
         "akira/settings/lang_en"_i18n,
+		"akira/settings/lang_ru"_i18n,
         "akira/settings/lang_zh_hans"_i18n,
     };
 
