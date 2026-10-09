@@ -134,6 +134,11 @@ void SettingsGeneralView::initLanguageSelector() {
             std::string locale = (selected > 0 && selected < (int)localeCodes.size()) ? localeCodes[selected] : "";
             settings->setDebugLocale(locale);
             settings->writeFile();
+			
+            auto* dialog = new brls::Dialog("akira/settings/lang_restart"_i18n);
+            dialog->setCancelable(false);
+            dialog->addButton("akira/common/ok"_i18n, []() { brls::Application::quit(); });
+            dialog->open();
         }
     );
 }
