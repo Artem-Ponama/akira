@@ -145,7 +145,7 @@ void SettingsGeneralView::initThemeSelector() {
     std::vector<std::string> ids;
     for (int i = 0; i < count; i++) {
         const akira::ui::Palette& p = akira::ui::themeAt(i);
-        options.emplace_back(p.name);
+        options.emplace_back(brls::getStr(std::string(p.name)));
         ids.emplace_back(p.id);
     }
 
